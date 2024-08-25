@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Routes, Route, createSearchParams, useSearchParams, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from 'react-redux'
 import 'reactjs-popup/dist/index.css'
@@ -10,30 +10,40 @@ import Starred from './components/Starred'
 import WatchLater from './components/WatchLater'
 import YouTubePlayer from './components/YoutubePlayer'
 import './app.scss'
+import { Modal } from './components/Modal'
+import useInfiniteScroll from './hooks/useInfiniteScroll'
 
 const App = () => {
-
-  const state = useSelector((state) => state)
-  const { movies } = state  
+  const navigate = useNavigate()
   const dispatch = useDispatch()
+  const { movies } = useSelector((state) => state)
+
   const [searchParams, setSearchParams] = useSearchParams()
   const searchQuery = searchParams.get('search')
+
   const [videoKey, setVideoKey] = useState()
   const [isOpen, setOpen] = useState(false)
-  const navigate = useNavigate()
-  
-  const closeModal = () => setOpen(false)
-  
-  const closeCard = () => {
 
+  const getMovies = () => {
+    if (searchQuery) {
+      dispatch(fetchMovies(`${ENDPOINT_SEARCH}&query=` + searchQuery))
+    } else {
+      dispatch(fetchMovies(`${ENDPOINT_DISCOVER}&page=1`))
+    }
   }
+
+  useEffect(() => {
+    getMovies()
+  }, [])
+
+  const closeModal = () => setOpen(false)
 
   const getSearchResults = (query) => {
     if (query !== '') {
-      dispatch(fetchMovies(`${ENDPOINT_SEARCH}&query=`+query))
+      dispatch(fetchMovies(`${ENDPOINT_SEARCH}&query=` + query))
       setSearchParams(createSearchParams({ search: query }))
     } else {
-      dispatch(fetchMovies(ENDPOINT_DISCOVER))
+      dispatch(fetchMovies(`${ENDPOINT_DISCOVER}&page=1`))
       setSearchParams()
     }
   }
@@ -41,14 +51,6 @@ const App = () => {
   const searchMovies = (query) => {
     navigate('/')
     getSearchResults(query)
-  }
-
-  const getMovies = () => {
-    if (searchQuery) {
-        dispatch(fetchMovies(`${ENDPOINT_SEARCH}&query=`+searchQuery))
-    } else {
-        dispatch(fetchMovies(ENDPOINT_DISCOVER))
-    }
   }
 
   const viewTrailer = (movie) => {
@@ -70,25 +72,30 @@ const App = () => {
     }
   }
 
-  useEffect(() => {
-    getMovies()
-  }, [])
+  useInfiniteScroll(() => {
+    if (!movies.isLoading) {
+      const nextPage = movies.currentPage + 1
+      dispatch(fetchMovies(`${ENDPOINT_DISCOVER}&page=${nextPage}`))
+    }
+  });
 
   return (
     <div className="App">
       <Header searchMovies={searchMovies} searchParams={searchParams} setSearchParams={setSearchParams} />
 
-      <div className="container">
+      <Modal show={isOpen} onClose={closeModal}>
         {videoKey ? (
           <YouTubePlayer
             videoKey={videoKey}
           />
         ) : (
-          <div style={{padding: "30px"}}><h6>no trailer available. Try another movie</h6></div>
+          <div style={{ padding: "30px" }}><h6>no trailer available. Try another movie</h6></div>
         )}
+      </Modal>
 
+      <div className="container">
         <Routes>
-          <Route path="/" element={<Movies movies={movies} viewTrailer={viewTrailer} closeCard={closeCard} />} />
+          <Route path="/" element={<Movies movies={movies} viewTrailer={viewTrailer} />} />
           <Route path="/starred" element={<Starred viewTrailer={viewTrailer} />} />
           <Route path="/watch-later" element={<WatchLater viewTrailer={viewTrailer} />} />
           <Route path="*" element={<h1 className="not-found">Page Not Found</h1>} />
