@@ -5,7 +5,6 @@ const useInfiniteScroll = (callback, options = {}) => {
     const handleScroll = () => {
       const { scrollTop, clientHeight, scrollHeight } = document.documentElement;
 
-      // Check if we have scrolled to the bottom
       if (scrollTop + clientHeight >= scrollHeight - (options.offset || 200)) {
         callback();
       }
