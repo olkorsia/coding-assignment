@@ -77,6 +77,8 @@ const App = () => {
       const nextPage = movies.currentPage + 1
       dispatch(fetchMovies(`${ENDPOINT_DISCOVER}&page=${nextPage}`))
     }
+  }, {
+    offset: 400,
   });
 
   return (
