@@ -5,6 +5,8 @@ import Movie from './Movie'
 import '../styles/movies.scss'
 
 const Movies = ({ movies, viewTrailer }) => {
+    const { movies } = useSelector((state) => state)
+    
     return (
         <div className='movies-container' data-testid="movies">
             {movies.movies?.map((movie) => {
